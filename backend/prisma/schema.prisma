@@ -11,3 +11,194 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  ADMIN
+  USER
+  LAWYER
+}
+
+model User {
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String   @unique
+  password        String
+  phoneNumber     String?
+  role            UserRole @default(USER)
+  profileImage    String?
+  emailVerified   Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  lawyer          Lawyer?
+  questions       Question[]
+  reviews         Review[]
+  bookmarks       Bookmark[]
+  notifications   Notification[]
+  otps            Otp[]
+}
+
+model Lawyer {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  barCouncilNumber  String   @unique
+  experience        Int
+  consultationFee   Decimal
+  bio               String
+  officeAddress     String
+  city              String
+  state             String
+  country           String
+  pincode           String
+  isVerified        Boolean  @default(false)
+  averageRating     Decimal  @default(0)
+  totalReviews      Int      @default(0)
+  totalCases        Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  user              User @relation(fields:[userId], references:[id])
+  practiceAreas     LawyerPracticeArea[]
+  blogs             Blog[]
+  answers           Answer[]
+  reviews           Review[]
+  bookmarks         Bookmark[]
+}
+
+model PracticeArea {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  lawyers     LawyerPracticeArea[]
+  questions   Question[]
+}
+
+model LawyerPracticeArea {
+  id              Int @id @default(autoincrement())
+  lawyerId        Int
+  practiceAreaId  Int
+  createdAt       DateTime @default(now())
+
+  lawyer          Lawyer @relation(fields:[lawyerId], references:[id])
+  practiceArea    PracticeArea @relation(fields:[practiceAreaId], references:[id])
+
+  @@unique([lawyerId, practiceAreaId])
+}
+
+model BlogCategory {
+  id          Int @id @default(autoincrement())
+  name        String @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  blogs       Blog[]
+}
+
+model Blog {
+  id          Int @id @default(autoincrement())
+  lawyerId    Int
+  categoryId  Int
+  title       String
+  slug        String @unique
+  thumbnail   String?
+  content     String
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  lawyer       Lawyer @relation(fields:[lawyerId], references:[id])
+  category     BlogCategory @relation(fields:[categoryId], references:[id])
+  bookmarks    Bookmark[]
+}
+
+model Question {
+  id             Int @id @default(autoincrement())
+  userId         Int
+  practiceAreaId Int
+  title          String
+  description    String
+  isAnonymous    Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  user           User @relation(fields:[userId], references:[id])
+  practiceArea   PracticeArea @relation(fields:[practiceAreaId], references:[id])
+  answers        Answer[]
+  bookmarks      Bookmark[]
+}
+
+model Answer {
+  id          Int @id @default(autoincrement())
+  questionId  Int
+  lawyerId    Int
+  answer      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  question    Question @relation(fields:[questionId], references:[id])
+  lawyer      Lawyer @relation(fields:[lawyerId], references:[id])
+
+  @@unique([questionId, lawyerId])
+}
+
+model Review {
+  id          Int @id @default(autoincrement())
+  userId      Int
+  lawyerId    Int
+  rating      Int
+  review      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user        User @relation(fields:[userId], references:[id])
+  lawyer      Lawyer @relation(fields:[lawyerId], references:[id])
+
+  @@unique([userId, lawyerId])
+}
+
+model Bookmark {
+  id            Int @id @default(autoincrement())
+  userId        Int
+  blogId        Int?
+  questionId    Int?
+  lawyerId      Int?
+  createdAt     DateTime @default(now())
+
+  user          User @relation(fields:[userId], references:[id])
+  blog          Blog? @relation(fields:[blogId], references:[id])
+  question      Question? @relation(fields:[questionId], references:[id])
+  lawyer        Lawyer? @relation(fields:[lawyerId], references:[id])
+}
+
+model Notification {
+  id          Int @id @default(autoincrement())
+  userId      Int
+  title       String
+  message     String
+  isRead      Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields:[userId], references:[id])
+}
+
+model Otp {
+  id          Int @id @default(autoincrement())
+  userId      Int
+  otp         String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields:[userId], references:[id])
+}
