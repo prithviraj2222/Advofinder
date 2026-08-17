@@ -2,17 +2,20 @@ import { RegisterData } from "../validations/auth.validation.js";
 import prisma from "../lib/prisma.js";
 import AppError from "../utils/AppError.js";
 import bcrypt from "bcrypt";
+import { storeOtp } from "./otp.service.js";
 
-const registerUser = async (data: RegisterData) => {
-  const user = await prisma.user.findUnique({
+export const registerUser = async (data: RegisterData) => {
+  const oldUser = await prisma.user.findUnique({
     where: {
       email: data.email,
     },
   });
 
-  if (user) {
+  if (oldUser) {
     throw new AppError("Email already registered", 409);
   }
+
+  const otpStatus = await storeOtp(data.email);
 
   const hashed = await bcrypt.hash(data.password, 10);
 
@@ -25,4 +28,8 @@ const registerUser = async (data: RegisterData) => {
       phoneNumber: data.phoneNumber,
     },
   });
+
+  const {password, ...user} = newUser;
+
+  return user;
 };

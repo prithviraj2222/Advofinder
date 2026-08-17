@@ -173,11 +173,10 @@ model Notification {
 
 model Otp {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  email     String
   otp       String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
 }
 
 enum UserRole {
