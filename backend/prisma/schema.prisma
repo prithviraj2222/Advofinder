@@ -24,7 +24,6 @@ model User {
   bookmarks     Bookmark[]
   lawyer        Lawyer?
   notifications Notification[]
-  otps          Otp[]
   questions     Question[]
   reviews       Review[]
 }
@@ -175,6 +174,7 @@ model Otp {
   id        Int      @id @default(autoincrement())
   email     String
   otp       String
+  verified  Boolean @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
 }

@@ -4,6 +4,9 @@ import authRoutes from "./routes/auth.routes.js";
 
 const app: Express = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.get("/", (req: Request, res: Response): void => {
   res.send("AdvoFinder Backend Running 🚀");
 });
