@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Lawyer" ALTER COLUMN "experience" DROP NOT NULL,
+ALTER COLUMN "consultationFee" DROP NOT NULL,
+ALTER COLUMN "bio" DROP NOT NULL,
+ALTER COLUMN "officeAddress" DROP NOT NULL;

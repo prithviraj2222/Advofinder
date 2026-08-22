@@ -26,16 +26,17 @@ model User {
   notifications Notification[]
   questions     Question[]
   reviews       Review[]
+  refreshTokens RefreshToken[]
 }
 
 model Lawyer {
   id               Int                  @id @default(autoincrement())
   userId           Int                  @unique
   barCouncilNumber String               @unique
-  experience       Int
-  consultationFee  Decimal
-  bio              String
-  officeAddress    String
+  experience       Int?
+  consultationFee  Decimal?
+  bio              String?
+  officeAddress    String?
   city             String
   state            String
   country          String
@@ -174,9 +175,18 @@ model Otp {
   id        Int      @id @default(autoincrement())
   email     String
   otp       String
-  verified  Boolean @default(false)
+  verified  Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 enum UserRole {
