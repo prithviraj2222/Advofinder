@@ -1,12 +1,15 @@
 import {
   AdvocateData,
+  ForgotPassData,
   LoginData,
   RefreshTokenData,
   RegisterData,
+  ResetPassData,
 } from "../validations/auth.validation.js";
 import prisma from "../lib/prisma.js";
 import AppError from "../utils/AppError.js";
 import bcrypt from "bcrypt";
+import { createHash } from "crypto";
 import { storeOtp } from "./otp.service.js";
 import jwt from "jsonwebtoken";
 
@@ -134,14 +137,18 @@ export const loginUser = async (data: LoginData) => {
     { expiresIn: "1d" },
   );
 
-  const refToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: "7d",
-  });
+  const refToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_REFRESH_SECRET!,
+    {
+      expiresIn: "7d",
+    },
+  );
 
   const refreshTokenExpiresAt = new Date();
   refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7);
 
-  const hashToken = await bcrypt.hash(refToken, 10);
+  const hashToken = createHash("sha256").update(refToken).digest("hex");
 
   await prisma.refreshToken.create({
     data: {
@@ -161,7 +168,7 @@ export const refreshAccessToken = async (data: RefreshTokenData) => {
   const { id, role } = jwt.verify(
     data.refreshToken,
     process.env.JWT_REFRESH_SECRET!,
-  ) as { id: number, role: string };
+  ) as { id: number; role: string };
 
   const refToken = await prisma.refreshToken.findFirst({
     where: {
@@ -173,22 +180,161 @@ export const refreshAccessToken = async (data: RefreshTokenData) => {
     throw new AppError("Invalid refresh token", 401);
   }
 
-  const result = await bcrypt.compare(refToken.token, data.refreshToken);
+  const hashedRefreshToken = createHash("sha256")
+    .update(data.refreshToken)
+    .digest("hex");
 
-  if(!result){
-        throw new AppError("Invalid refresh token", 401);
+  const result = hashedRefreshToken === refToken.token;
+
+  if (!result) {
+    throw new AppError("Invalid refresh token", 401);
   }
 
-  if(new Date() > refToken.expiresAt) {
+  if (new Date() > refToken.expiresAt) {
     throw new AppError("Refresh token expired", 401);
   }
 
-    const token = jwt.sign(
+  const token = jwt.sign(
     { id: id, role: role },
     process.env.JWT_ACCESS_SECRET!,
     { expiresIn: "1d" },
   );
 
-  return token;
+  await prisma.refreshToken.delete({
+    where: {
+      id: refToken.id,
+    },
+  });
 
+  const newRefToken = jwt.sign(
+    { id: id, role: role },
+    process.env.JWT_REFRESH_SECRET!,
+    {
+      expiresIn: "7d",
+    },
+  );
+
+  const refreshTokenExpiresAt = new Date();
+  refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7);
+
+  const hashToken = createHash("sha256").update(newRefToken).digest("hex");
+
+  await prisma.refreshToken.create({
+    data: {
+      userId: id,
+      token: hashToken,
+      expiresAt: refreshTokenExpiresAt,
+    },
+  });
+
+  return {
+    token,
+    newRefToken,
+  };
+};
+
+export const logOutUser = async (refreshToken: string) => {
+  const { id } = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as {
+    id: number;
+  };
+
+  const tokens = await prisma.refreshToken.findMany({
+    where: {
+      userId: id,
+    },
+  });
+
+  let matchedToken = null;
+
+  for (let token of tokens) {
+    const hashedRefreshToken = createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
+
+    const isMatch = hashedRefreshToken === token.token;
+
+    if (isMatch) {
+      matchedToken = token;
+      break;
+    }
+  }
+
+  if (!matchedToken) {
+    throw new AppError("Invalid refresh token", 401);
+  }
+
+  await prisma.refreshToken.delete({
+    where: {
+      id: matchedToken.id,
+    },
+  });
+};
+
+export const forgotPassword = async (data: ForgotPassData) => {
+  const user = await prisma.user.findFirst({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  await storeOtp(data.email);
+
+  return {
+    message: "OTP sent successfully",
+  };
+};
+
+export const changePassword = async (id: number, newPass: string) => {
+  const hashedPass = await bcrypt.hash(newPass, 10);
+
+  await prisma.user.update({
+    where: {
+      id: id,
+    },
+    data: {
+      password: hashedPass,
+    },
+  });
+
+  return {
+    message: "Password changed successfully",
+  };
+};
+
+export const resetPassword = async (data: ResetPassData) => {
+  const user = await prisma.user.findFirst({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("User not found", 401);
+  }
+
+  const otpRecord = await prisma.otp.findFirst({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (!otpRecord?.verified) {
+    throw new AppError("Email not verified", 400);
+  }
+
+  await changePassword(user.id, data.newPassword);
+
+  await prisma.otp.deleteMany({
+    where: {
+      email: data.email,
+    },
+  });
+
+  return {
+    message: "Password reset successfully",
+  };
 };

@@ -35,7 +35,7 @@ export const storeOtp = async (email: string) => {
   }
 };
 
-export const verifyRegistrationOtp = async (data: OtpData) => {
+export const verifyotp = async (data: OtpData) => {
   const otp = await prisma.otp.findFirst({
     where: {
       email: data.email,

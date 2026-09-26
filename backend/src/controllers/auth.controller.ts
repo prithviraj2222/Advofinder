@@ -1,19 +1,26 @@
 import { type Request, type Response, type NextFunction } from "express";
 import {
   advocateRegisterSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
   loginSchema,
   refreshTokenSchema,
   registerSchema,
+  resetPasswordSchema,
 } from "../validations/auth.validation.js";
 import {
+  changePassword,
+  forgotPassword,
   loginUser,
+  logOutUser,
   refreshAccessToken,
   registerAdvocate,
   registerUser,
+  resetPassword,
   sendRegistrationOtp,
 } from "../services/auth.service.js";
 import { verifyOtpSchema } from "../validations/otp.validation.js";
-import { verifyRegistrationOtp } from "../services/otp.service.js";
+import { verifyotp } from "../services/otp.service.js";
 
 export const sendOtp = async (
   req: Request,
@@ -40,7 +47,7 @@ export const verifyOtp = async (
   try {
     const validatedData = verifyOtpSchema.parse(req.body);
 
-    const result = await verifyRegistrationOtp(validatedData);
+    const result = await verifyotp(validatedData);
 
     return res.status(200).json(result);
   } catch (error) {
@@ -128,3 +135,77 @@ export const regenerateAccessToken = async (
   }
 };
 
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const validatedData = refreshTokenSchema.parse(req.body);
+
+    await logOutUser(validatedData.refreshToken);
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPass = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const validatedData = forgotPasswordSchema.parse(req.body);
+
+    const result = await forgotPassword(validatedData);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPass = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const validatedData = resetPasswordSchema.parse(req.body);
+
+    const result = await resetPassword(validatedData);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePass = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const validatedData = changePasswordSchema.parse(req.body);
+    const result = await changePassword(req.user.id, validatedData.newPassword);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error)
+  }
+}
