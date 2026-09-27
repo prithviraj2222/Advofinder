@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { getUserDetails, updateUserDetails } from "../services/user.service.js";
+import { getUserDetails, updateProfileImage, updateUserDetails } from "../services/user.service.js";
 import { updateUserSchema } from "../validations/user.validation.js";
+import AppError from "../utils/AppError.js";
 
 export const getUserProfile = async (
   req: Request,
@@ -31,8 +32,34 @@ export const updateUserProfile = async (
 
     return res.status(200).json({
       success: true,
-      message: "User updated successfully",
+      message: "User profile updated successfully",
       data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateUserProfileImage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.file) {
+      throw new AppError("Profile image is required", 400);
+    }
+
+    const filePath = `/uploads/${req.file.filename}`;
+
+    const user = await updateProfileImage(req.user.id, filePath);
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile image updated successfully",
+      data: {
+        profileImage: user.profileImage,
+      },
     });
   } catch (error) {
     next(error);
