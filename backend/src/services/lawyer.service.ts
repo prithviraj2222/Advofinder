@@ -1,6 +1,6 @@
 import prisma from "../lib/prisma.js";
 import AppError from "../utils/AppError.js";
-import { UpdateLawyerData } from "../validations/lawyer.validation.js";
+import { LawyerQueryData, UpdateLawyerData } from "../validations/lawyer.validation.js";
 
 export const getLawyerDetails = async (id: number) => {
   let lawyer = await prisma.lawyer.findUnique({
@@ -81,3 +81,143 @@ export const getLawyerData = async (id: number) => {
     user,
   };
 };
+
+export const getAllLawyersDetails = async (data: LawyerQueryData) => {
+  const page = data.page ?? 1;
+  const limit = data.limit ?? 10;
+
+  const skip = (page - 1) * limit;
+
+  const where = {
+    deletedAt: null,
+    user: {
+      deletedAt: null,
+      isActive: true,
+      emailVerified: true
+    },
+  };
+
+  if (data.search) {
+    where.OR = [
+      {
+        user: {
+          firstName: {
+            contains: data.search,
+            mode: "insensitive",
+          },
+        },
+      },
+      {
+        user: {
+          lastName: {
+            contains: data.search,
+            mode: "insensitive",
+          },
+        },
+      },
+      {
+        city: {
+          contains: data.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        state: {
+          contains: data.search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
+
+  if (data.city) {
+    where.city = {
+      equals: data.city,
+      mode: "insensitive",
+    }
+  }
+
+  if (data.state) {
+    where.state = {
+      equals: data.state,
+      mode: "insensitive",
+    };
+  }
+
+  if (data.experience !== undefined) {
+    where.experience = {
+      gte: data.experience,
+    };
+  }
+
+  if (data.consultationFee !== undefined) {
+    where.consultationFee = {
+      lte: data.consultationFee,
+    };
+  }
+
+  if (data.rating !== undefined) {
+    where.averageRating = {
+      gte: data.rating,
+    };
+  }
+
+  let orderBy: any = {
+    createdAt: "desc",
+  };
+
+  if (data.sortBy === "experience") {
+    orderBy = {
+      experience: data.sortOrder ?? "desc",
+    };
+  }
+
+  if (data.sortBy === "consultationFee") {
+    orderBy = {
+      consultationFee: data.sortOrder ?? "asc",
+    };
+  }
+
+  if (data.sortBy === "rating") {
+    orderBy = {
+      averageRating: data.sortOrder ?? "desc",
+    };
+  }
+
+  const [lawyers, total] = await Promise.all([
+    prisma.lawyer.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
+      include: {
+        user: true,
+      },
+    }),
+
+    prisma.lawyer.count({
+      where,
+    }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  const result = lawyers.map((lawyer) => {
+    const { password, ...user } = lawyer.user;
+
+    return {
+      ...lawyer,
+      user,
+    };
+  });
+
+  return {
+    data: result,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
+} 

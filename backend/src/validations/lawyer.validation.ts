@@ -25,7 +25,7 @@ export const lawyerQuerySchema = z.object({
   rating: z.coerce.number().min(0).max(5).optional(),
 
   sortBy: z
-    .enum(["experience", "consultationFee", "rating", "newest"])
+    .enum(["experience", "consultationFee", "rating"])
     .optional(),
 
   sortOrder: z.enum(["asc", "desc"]).optional(),

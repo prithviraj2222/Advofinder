@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import {
+  getAllLawyer,
   getLawyerAllData,
   getLawyerProfile,
   updateLawyerProfile,
@@ -8,6 +9,7 @@ import {
 
 const router = Router();
 
+router.get("/", getAllLawyer);
 router.get("/me", authMiddleware, getLawyerProfile);
 router.patch("/me", authMiddleware, updateLawyerProfile);
 router.get("/:id", getLawyerAllData);

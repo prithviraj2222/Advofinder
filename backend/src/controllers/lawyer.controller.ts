@@ -1,10 +1,11 @@
 import { type Request, type Response, type NextFunction } from "express";
 import {
+  getAllLawyersDetails,
   getLawyerData,
   getLawyerDetails,
   updateLawyerDetails,
 } from "../services/lawyer.service.js";
-import { updateLawyerSchema } from "../validations/lawyer.validation.js";
+import { lawyerQuerySchema, updateLawyerSchema } from "../validations/lawyer.validation.js";
 
 export const getLawyerProfile = async (
   req: Request,
@@ -61,3 +62,23 @@ export const getLawyerAllData = async (
     next(error);
   }
 };
+
+export const getAllLawyer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const validatedData = lawyerQuerySchema.parse(req.query);
+
+    const result = await getAllLawyersDetails(validatedData);
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    next(error)
+  }
+}
