@@ -1,4 +1,7 @@
+import { Prisma } from "../generated/prisma/client.js";
 import prisma from "../lib/prisma.js";
+type LawyerWhereInput =
+  Prisma.Args<typeof prisma.lawyer, "findMany">["where"];
 import AppError from "../utils/AppError.js";
 import { LawyerQueryData, UpdateLawyerData } from "../validations/lawyer.validation.js";
 
@@ -61,7 +64,7 @@ export const updateLawyerDetails = async (
 };
 
 export const getLawyerData = async (id: number) => {
-  let lawyer = await prisma.lawyer.findUnique({
+  const lawyer = await prisma.lawyer.findUnique({
     where: {
       id: id,
     },
@@ -88,7 +91,7 @@ export const getAllLawyersDetails = async (data: LawyerQueryData) => {
 
   const skip = (page - 1) * limit;
 
-  const where = {
+  const where: LawyerWhereInput =  {
     deletedAt: null,
     user: {
       deletedAt: null,
@@ -162,7 +165,7 @@ export const getAllLawyersDetails = async (data: LawyerQueryData) => {
     };
   }
 
-  let orderBy: any = {
+  let orderBy: Prisma.Args<typeof prisma.lawyer, "findMany">["orderBy"]  = {
     createdAt: "desc",
   };
 
