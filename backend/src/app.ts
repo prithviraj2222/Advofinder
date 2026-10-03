@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/lawyers", lawyerRoutes);
-app.use("/api/practice-areas ", practiceAreaRoutes);
+app.use("/api/practice-areas", practiceAreaRoutes);
 app.use("/uploads", express.static("src/uploads"));
 
 app.use(errorMiddleware);
